@@ -67,6 +67,17 @@ const nextConfig = {
       'oracledb': false,
     }
     
+    // Alias for Prisma (stub) - ignore @prisma/client
+    config.resolve.alias = {
+      ...config.resolve.alias,
+    }
+    
+    // Ignore @prisma/client imports
+    if (!config.resolve.fallback) {
+      config.resolve.fallback = {}
+    }
+    config.resolve.fallback['@prisma/client'] = false
+    
     // Ignore TypeORM driver files that aren't needed
     config.resolve.alias = {
       ...config.resolve.alias,
