@@ -1,6 +1,5 @@
 'use client'
 
-import { useParams } from 'next/navigation'
 import { getLocale } from '@/lib/i18n'
 import { defaultLocale } from '@/i18n'
 import { useMemo, useState, useEffect } from 'react'
@@ -15,9 +14,8 @@ const messages: Record<string, any> = {
 }
 
 export function useTranslations() {
-  const params = useParams()
   const [pathname, setPathname] = useState<string | null>(null)
-
+  
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setPathname(window.location.pathname)
@@ -40,7 +38,7 @@ export function useTranslations() {
   
   // Pathname'den locale çıkar (örn: /tr/products -> tr)
   const pathLocale = pathname?.split('/')[1]
-  const locale = getLocale(pathLocale || params?.locale as string | undefined)
+  const locale = getLocale(pathLocale)
   
   return useMemo(() => {
     const translations = messages[locale] || messages[defaultLocale]
