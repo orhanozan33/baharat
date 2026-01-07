@@ -1,13 +1,3 @@
-// UUID generator utility - works in both Node.js and browser environments
-export function randomUUID(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID()
-  }
-  // Fallback for environments without crypto.randomUUID
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0
-    const v = c === 'x' ? r : (r & 0x3) | 0x8
-    return v.toString(16)
-  })
-}
-
+// Legacy export - redirect to new location
+// TODO: Update all imports to use @/src/backend/utils/uuid
+export * from '@/src/backend/utils/uuid'

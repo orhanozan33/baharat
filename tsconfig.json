@@ -22,7 +22,11 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@/src/*": ["./src/*"],
+      "@/database/*": ["./src/database/*"],
+      "@/backend/*": ["./src/backend/*"],
+      "@/frontend/*": ["./src/frontend/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
