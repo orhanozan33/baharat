@@ -34,41 +34,81 @@ const entities = [
   Settings,
 ]
 
-// DataSource'u doğrudan oluştur
+// DataSource'u lazy initialize et
 // Next.js'de environment variable'lar runtime'da yüklenir
-// DATABASE_URL kontrolü
-if (!process.env.DATABASE_URL) {
-  console.error('❌ DATABASE_URL environment variable is not set!')
-  console.error('Please set DATABASE_URL in Vercel Environment Variables.')
-  console.error('For Supabase: postgresql://postgres:PASSWORD@db.PROJECT.supabase.co:5432/postgres')
-  throw new Error('DATABASE_URL environment variable is required')
+let _appDataSource: DataSource | null = null
+
+function getDataSource(): DataSource {
+  if (_appDataSource) {
+    return _appDataSource
+  }
+
+  // DATABASE_URL kontrolü - runtime'da yapılmalı
+  const databaseUrl = process.env.DATABASE_URL
+  
+  if (!databaseUrl) {
+    const error = '❌ DATABASE_URL environment variable is not set!'
+    console.error(error)
+    console.error('Please set DATABASE_URL in Vercel Environment Variables.')
+    console.error('Current environment:', process.env.NODE_ENV)
+    console.error('Vercel env:', process.env.VERCEL_ENV)
+    throw new Error(error + ' Please check Vercel Environment Variables and redeploy.')
+  }
+
+  // Localhost kontrolü
+  if (databaseUrl.includes('localhost') || databaseUrl.includes('127.0.0.1')) {
+    const error = '❌ DATABASE_URL points to localhost. This will not work on Vercel!'
+    console.error(error)
+    console.error('DATABASE_URL should point to Supabase, not localhost.')
+    console.error('Current DATABASE_URL preview:', databaseUrl.substring(0, 50) + '...')
+    throw new Error(error + ' Update DATABASE_URL to Supabase connection string and redeploy.')
+  }
+
+  // Supabase Postgres genelde SSL ister
+  const needsSsl =
+    process.env.DB_SSL === 'true' ||
+    databaseUrl.includes('supabase.co') ||
+    databaseUrl.includes('sslmode=require')
+
+  console.log('✅ Initializing database connection...')
+  console.log('Database URL preview:', databaseUrl.substring(0, 40) + '...')
+  console.log('SSL required:', needsSsl)
+  console.log('Environment:', process.env.NODE_ENV, process.env.VERCEL_ENV)
+
+  _appDataSource = new DataSource({
+    type: 'postgres',
+    url: databaseUrl,
+    synchronize: false, // Performance için kapatıldı - migrations kullanın
+    logging: false, // Performance için logging kapalı
+    entities: entities, // Array olarak entity class'larını ver
+    migrations: [],
+    subscribers: [],
+    extra: {
+      max: 20, // Connection pool size artırıldı
+      min: 5, // Minimum pool size
+      connectionTimeoutMillis: 30000, // Timeout artırıldı
+      idleTimeoutMillis: 30000,
+      maxUses: 7500,
+      ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+    },
+    cache: false,
+    // Metadata'yı zorla yükle
+    entitySkipConstructor: false,
+  })
+
+  return _appDataSource
 }
 
-// Supabase Postgres genelde SSL ister
-const needsSsl =
-  process.env.DB_SSL === 'true' ||
-  process.env.DATABASE_URL.includes('supabase.co') ||
-  process.env.DATABASE_URL.includes('sslmode=require')
-
-export const AppDataSource = new DataSource({
-  type: 'postgres',
-  url: process.env.DATABASE_URL,
-  synchronize: false, // Performance için kapatıldı - migrations kullanın
-  logging: false, // Performance için logging kapalı
-  entities: entities, // Array olarak entity class'larını ver
-  migrations: [],
-  subscribers: [],
-  extra: {
-    max: 20, // Connection pool size artırıldı
-    min: 5, // Minimum pool size
-    connectionTimeoutMillis: 30000, // Timeout artırıldı
-    idleTimeoutMillis: 30000,
-    maxUses: 7500,
-    ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+// Export getter - her kullanımda kontrol edilir
+export const AppDataSource = new Proxy({} as DataSource, {
+  get(target, prop) {
+    const ds = getDataSource()
+    const value = (ds as any)[prop]
+    if (typeof value === 'function') {
+      return value.bind(ds)
+    }
+    return value
   },
-  cache: false,
-  // Metadata'yı zorla yükle
-  entitySkipConstructor: false,
 })
 
 // Next.js için global connection singleton

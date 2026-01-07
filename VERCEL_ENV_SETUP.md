@@ -1,111 +1,154 @@
-# Vercel Environment Variables Setup
+# 🚨 URGENT: Vercel DATABASE_URL Ayarlama (Hata: ECONNREFUSED 127.0.0.1:5432)
 
-## Gerekli Environment Variables
+## ❌ Hata
+```
+{"error":"connect ECONNREFUSED 127.0.0.1:5432"}
+```
 
-Vercel Dashboard → Project Settings → Environment Variables bölümüne aşağıdaki değişkenleri ekleyin:
+Bu hata, Vercel'de `DATABASE_URL` environment variable'ının **YANLIŞ** ayarlandığı veya **EKSIK** olduğu anlamına gelir.
 
-### 1. DATABASE_URL (ZORUNLU)
+---
+
+## ✅ ÇÖZÜM: 3 ADIM
+
+### ADIM 1: Vercel Dashboard'a Git
+
+1. **Vercel:** https://vercel.com/dashboard
+2. **Proje:** `baharat` seçin
+3. **Settings** → **Environment Variables** sekmesine gidin
+
+---
+
+### ADIM 2: DATABASE_URL'i Kontrol Et/Ekle
+
+**Mevcut DATABASE_URL var mı kontrol edin:**
+
+1. `DATABASE_URL` değişkenini arayın
+2. **Eğer YOKSA veya YANLIŞSA:**
+   - **Key:** `DATABASE_URL`
+   - **Value:** Aşağıdaki değeri **TAM OLARAK** kopyalayın:
+     ```
+     postgresql://postgres:Orhan2581@db.wznkjgmhtcxkmwxhfkxi.supabase.co:5432/postgres
+     ```
+   - **Environment:** ✅ Production ✅ Preview ✅ Development (HEPSİNİ SEÇİN!)
+   - **Save** butonuna tıklayın
+
+3. **Eğer VARSA:**
+   - Yanındaki göz (👁️) ikonuna tıklayın
+   - Değeri kontrol edin:
+     - ❌ `localhost` veya `127.0.0.1` içeriyor mu?
+     - ❌ `[YOUR-PASSWORD]` yazıyor mu?
+     - ✅ `db.wznkjgmhtcxkmwxhfkxi.supabase.co` içeriyor mu?
+   
+   **Yanlışsa, düzenleyin:**
+   - Yanındaki ✏️ (edit) butonuna tıklayın
+   - Değeri şununla değiştirin:
+     ```
+     postgresql://postgres:Orhan2581@db.wznkjgmhtcxkmwxhfkxi.supabase.co:5432/postgres
+     ```
+   - **Save**
+
+---
+
+### ADIM 3: REDEPLOY (EN ÖNEMLİSİ!)
+
+⚠️ **ÇOK ÖNEMLİ:** Environment variable değişikliğinden sonra **MUTLAKA redeploy yapmalısınız!**
+
+1. **Deployments** sekmesine gidin
+2. En üstteki deployment'ı bulun
+3. Yanındaki **⋯** (üç nokta) menüsüne tıklayın
+4. **Redeploy** seçeneğini seçin
+5. **Redeploy** butonuna tıklayın
+6. ⏳ **2-3 dakika bekleyin** (deployment tamamlanana kadar)
+
+---
+
+## 🧪 TEST ET
+
+### 1. Health Check Endpoint
+Tarayıcıda açın:
+```
+https://baharat-e9n4lcvjx-orhanozan33.vercel.app/api/health/database
+```
+
+**Beklenen sonuç:**
+```json
+{
+  "status": "success",
+  "message": "Database connection successful",
+  ...
+}
+```
+
+**Eğer hata varsa:**
+- Mesajı okuyun - size tam olarak neyin yanlış olduğunu söyler
+- Vercel loglarını kontrol edin
+
+### 2. Products API
+```
+https://baharat-e9n4lcvjx-orhanozan33.vercel.app/api/products
+```
+
+**Beklenen:** JSON formatında ürün listesi (veya boş array `[]`)
+
+---
+
+## 🔍 SORUN GİDERME
+
+### Hata: "DATABASE_URL environment variable is not set"
+**Çözüm:** Vercel Environment Variables'da `DATABASE_URL` ekleyin ve redeploy yapın
+
+### Hata: "DATABASE_URL points to localhost"
+**Çözüm:** DATABASE_URL değerini Supabase connection string'i ile değiştirin:
 ```
 postgresql://postgres:Orhan2581@db.wznkjgmhtcxkmwxhfkxi.supabase.co:5432/postgres
 ```
-- **Açıklama**: PostgreSQL veritabanı bağlantı string'i
-- **Environment**: Production, Preview, Development (hepsini seçin)
 
-### 2. JWT_SECRET (ZORUNLU)
-```
-your-super-secret-jwt-key-change-this-in-production
-```
-- **Açıklama**: JWT token şifreleme için secret key
-- **Not**: Güçlü bir random string kullanın (en az 32 karakter)
-- **Environment**: Production, Preview, Development (hepsini seçin)
-
-### 3. NEXT_PUBLIC_SUPABASE_URL (ZORUNLU)
-```
-https://wznkjgmhtcxkmwxhfkxi.supabase.co
-```
-- **Açıklama**: Supabase project URL
-- **Environment**: Production, Preview, Development (hepsini seçin)
-
-### 4. NEXT_PUBLIC_SUPABASE_ANON_KEY (ZORUNLU)
-```
-[Supabase Dashboard'dan alın - Settings → API → anon/public key]
-```
-- **Açıklama**: Supabase anonymous/public key
-- **Environment**: Production, Preview, Development (hepsini seçin)
-
-### 5. SUPABASE_SERVICE_ROLE_KEY (ZORUNLU)
-```
-[Supabase Dashboard'dan alın - Settings → API → service_role key]
-```
-- **Açıklama**: Supabase service role key (admin işlemleri için)
-- **Not**: Bu key'i asla client-side'da kullanmayın!
-- **Environment**: Production, Preview, Development (hepsini seçin)
-
-### 6. NEXT_PUBLIC_APP_URL (OPSİYONEL)
-```
-https://baharat-e9n4lcvjx-orhanozan33.vercel.app
-```
-veya özel domain'iniz:
-```
-https://yourdomain.com
-```
-- **Açıklama**: Uygulamanızın public URL'i
-- **Not**: Vercel otomatik olarak ayarlayabilir, ama manuel de ekleyebilirsiniz
-- **Environment**: Production, Preview, Development (hepsini seçin)
-
-### 7. JWT_EXPIRES_IN (OPSİYONEL)
-```
-7d
-```
-- **Açıklama**: JWT token'ın geçerlilik süresi
-- **Varsayılan**: 7d (7 gün)
-- **Environment**: Production, Preview, Development (hepsini seçin)
+### Hata Devam Ediyorsa:
+1. Vercel Dashboard → **Deployments** → En son deployment → **View Build Logs**
+2. Loglarda `DATABASE_URL` yazdırılan değeri kontrol edin
+3. Eğer hala localhost görüyorsanız, redeploy yapmayı unutmuş olabilirsiniz!
 
 ---
 
-## Vercel'de Nasıl Eklenir?
+## ✅ KONTROL LİSTESİ
 
-1. **Vercel Dashboard'a gidin**: https://vercel.com/dashboard
-2. **Projenizi seçin**: `baharat`
-3. **Settings → Environment Variables** bölümüne gidin
-4. Her bir variable için:
-   - **Key**: Variable adını girin (örn: `DATABASE_URL`)
-   - **Value**: Değeri girin
-   - **Environment**: Production, Preview, Development'ı seçin
-   - **Add** butonuna tıklayın
-
-5. **Redeploy**: Environment variables eklendikten sonra yeni bir deployment başlatın
-
----
-
-## Supabase Keys Nasıl Bulunur?
-
-1. **Supabase Dashboard**: https://supabase.com/dashboard
-2. **Projenizi seçin**: `wznkjgmhtcxkmwxhfkxi`
-3. **Settings → API** bölümüne gidin
-4. **Project URL**: `NEXT_PUBLIC_SUPABASE_URL` için kullanın
-5. **anon public key**: `NEXT_PUBLIC_SUPABASE_ANON_KEY` için kullanın
-6. **service_role key**: `SUPABASE_SERVICE_ROLE_KEY` için kullanın (⚠️ Gizli tutun!)
+- [ ] Vercel Dashboard'a girdim
+- [ ] Settings → Environment Variables'a gittim
+- [ ] DATABASE_URL'i buldum veya ekledim
+- [ ] DATABASE_URL değeri: `postgresql://postgres:Orhan2581@db.wznkjgmhtcxkmwxhfkxi.supabase.co:5432/postgres`
+- [ ] DATABASE_URL'de `localhost` YOK
+- [ ] DATABASE_URL'de `127.0.0.1` YOK
+- [ ] DATABASE_URL'de `[YOUR-PASSWORD]` YOK
+- [ ] Environment: Production, Preview, Development (hepsini seçtim)
+- [ ] **REDEPLOY YAPTIM!** ⭐
+- [ ] Health check endpoint'ini test ettim
+- [ ] `/api/products` endpoint'ini test ettim
 
 ---
 
-## Önemli Notlar
+## 📞 DESTEK
 
-- ✅ Tüm environment variables'ı **Production, Preview, Development** için ekleyin
-- ✅ `NEXT_PUBLIC_*` ile başlayan değişkenler client-side'da kullanılabilir
-- ⚠️ `SUPABASE_SERVICE_ROLE_KEY` ve `JWT_SECRET` gibi gizli key'leri asla client-side'da kullanmayın
-- 🔄 Environment variables eklendikten sonra **mutlaka redeploy** yapın
+Eğer tüm adımları yaptıktan sonra hala sorun varsa:
+
+1. Health check endpoint'inin tam çıktısını paylaşın:
+   ```
+   https://baharat-e9n4lcvjx-orhanozan33.vercel.app/api/health/database
+   ```
+
+2. Vercel Deployment Logs'unu kontrol edin ve hata mesajlarını paylaşın
+
+3. Vercel Environment Variables ekranının screenshot'ını paylaşın (şifreleri gizleyerek)
 
 ---
 
-## Hızlı Kontrol Listesi
+## 🎯 ÖZET
 
-- [ ] DATABASE_URL eklendi
-- [ ] JWT_SECRET eklendi (güçlü bir key)
-- [ ] NEXT_PUBLIC_SUPABASE_URL eklendi
-- [ ] NEXT_PUBLIC_SUPABASE_ANON_KEY eklendi
-- [ ] SUPABASE_SERVICE_ROLE_KEY eklendi
-- [ ] NEXT_PUBLIC_APP_URL eklendi (opsiyonel)
-- [ ] Tüm environment'lar için seçildi (Production, Preview, Development)
-- [ ] Redeploy yapıldı
+**Sorun:** Vercel'de DATABASE_URL localhost'a işaret ediyor veya eksik.
 
+**Çözüm:**
+1. DATABASE_URL'i Supabase connection string'i ile güncelle
+2. **REDEPLOY YAP!**
+3. Test et
+
+**En yaygın hata:** Redeploy yapmayı unutmak! Environment variables sadece yeni deployment'larda aktif olur.
