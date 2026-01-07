@@ -39,12 +39,14 @@ const entities = [
 // DATABASE_URL kontrolü
 if (!process.env.DATABASE_URL) {
   console.error('❌ DATABASE_URL environment variable is not set!')
-  console.error('Please check your .env file in the project root.')
+  console.error('Please set DATABASE_URL in Vercel Environment Variables.')
+  console.error('For Supabase: postgresql://postgres:PASSWORD@db.PROJECT.supabase.co:5432/postgres')
+  throw new Error('DATABASE_URL environment variable is required')
 }
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
-  url: process.env.DATABASE_URL || 'postgresql://postgres:333333@localhost:5432/baharat',
+  url: process.env.DATABASE_URL,
   synchronize: false, // Performance için kapatıldı - migrations kullanın
   logging: false, // Performance için logging kapalı
   entities: entities, // Array olarak entity class'larını ver
