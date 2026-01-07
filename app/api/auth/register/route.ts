@@ -15,8 +15,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Email'in zaten kullanılıp kullanılmadığını kontrol et
+    // Get user repository once
     const userRepo = await getUserRepository()
+    
+    // Email'in zaten kullanılıp kullanılmadığını kontrol et
     const existingUser = await userRepo.findOne({
       where: { email },
     })
@@ -29,7 +31,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Database'de kullanıcı oluştur
-    
     const user = userRepo.create({
       supabaseId: randomUUID(),
       email,
