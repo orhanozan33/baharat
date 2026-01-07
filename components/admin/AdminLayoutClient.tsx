@@ -2,7 +2,7 @@
 
 import { ReactNode, useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import { useRouter, usePathname as useNextPathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { ToastContainer } from '@/components/Toast'
 import { getTranslations } from '@/lib/i18n'
 import { locales, localeNames, type Locale } from '@/i18n'
@@ -11,16 +11,31 @@ import { AdminLocaleProvider, useAdminLocale } from '@/contexts/AdminLocaleConte
 function AdminLayoutContent({ children }: { children: ReactNode }) {
   const router = useRouter()
   const { locale: adminLocale, setLocale } = useAdminLocale()
-  const nextPathname = useNextPathname()
   const [pathname, setPathname] = useState<string | null>(null)
   const [dashboardExpanded, setDashboardExpanded] = useState<boolean>(false)
+  const [mounted, setMounted] = useState(false)
   
-  // Next.js pathname'i kullan
+  // Pathname'i güvenli bir şekilde al
   useEffect(() => {
-    if (nextPathname) {
-      setPathname(nextPathname)
+    setMounted(true)
+    if (typeof window !== 'undefined') {
+      setPathname(window.location.pathname)
+      
+      const handleLocationChange = () => {
+        setPathname(window.location.pathname)
+      }
+      
+      window.addEventListener('popstate', handleLocationChange)
+      window.addEventListener('pushstate', handleLocationChange)
+      window.addEventListener('replacestate', handleLocationChange)
+      
+      return () => {
+        window.removeEventListener('popstate', handleLocationChange)
+        window.removeEventListener('pushstate', handleLocationChange)
+        window.removeEventListener('replacestate', handleLocationChange)
+      }
     }
-  }, [nextPathname])
+  }, [])
   
   // Sayfa yüklendiğinde ve route değiştiğinde en üste scroll yap
   useEffect(() => {
