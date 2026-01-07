@@ -146,7 +146,7 @@ export async function GET(
       slug: product.slug || '',
       price: Number(product.price || 0),
       comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
-      images: Array.isArray(product.images) ? product.images : (typeof product.images === 'string' ? product.images.split(',').filter((img: string) => img.trim()) : []),
+      images: Array.isArray(product.images) ? product.images : (typeof (product.images as any) === 'string' ? (product.images as string).split(',').filter((img: string) => img.trim()) : []),
       stock: Number(product.stock || 0),
       isFeatured: Boolean(product.isFeatured),
       isActive: Boolean(product.isActive),

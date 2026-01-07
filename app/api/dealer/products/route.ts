@@ -1,17 +1,27 @@
+import 'reflect-metadata'
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { checkDealer } from '@/lib/auth-helpers'
+import { getDealerRepository, getProductRepository, getDealerProductRepository } from '@/lib/db'
+import { extractAuthToken, verifyToken } from '@/lib/auth'
+import { Like, In } from 'typeorm'
 
 export async function GET(req: NextRequest) {
-  const auth = await checkDealer(req)
-  if (!auth) {
+  const token = extractAuthToken(req)
+  if (!token) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const payload = verifyToken(token)
+  if (!payload || payload.role !== 'DEALER') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
-    // Dealer'ı bul
-    const dealer = await prisma.dealer.findUnique({
-      where: { userId: auth.userId },
+    const dealerRepo = await getDealerRepository()
+    const productRepo = await getProductRepository()
+    const dealerProductRepo = await getDealerProductRepository()
+
+    const dealer = await dealerRepo.findOne({
+      where: { userId: payload.userId },
     })
 
     if (!dealer || !dealer.isActive) {
@@ -28,64 +38,63 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const skip = (page - 1) * limit
 
-    // Dealer'ın özel fiyatları ile ürünleri getir
-    const where: any = {
-      isActive: true,
-      dealerProducts: {
-        some: {
-          dealerId: dealer.id,
-          isActive: true,
-        },
+    // Dealer'ın aktif dealer product'larını getir
+    const dealerProducts = await dealerProductRepo.find({
+      where: {
+        dealerId: dealer.id,
+        isActive: true,
       },
+      relations: ['product', 'product.category'],
+    })
+
+    // Product ID'leri al
+    const productIds = dealerProducts.map((dp) => dp.productId)
+
+    if (productIds.length === 0) {
+      return NextResponse.json({
+        products: [],
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          pages: 0,
+        },
+      })
     }
 
+    // Query builder oluştur
+    const queryBuilder = productRepo
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .where('product.id IN (:...productIds)', { productIds })
+      .andWhere('product.isActive = :isActive', { isActive: true })
+
     if (category) {
-      where.categoryId = category
+      queryBuilder.andWhere('product.categoryId = :categoryId', { categoryId: category })
     }
 
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { sku: { contains: search, mode: 'insensitive' } },
-      ]
+      queryBuilder.andWhere(
+        '(LOWER(product.name) LIKE LOWER(:search) OR LOWER(product.description) LIKE LOWER(:search) OR LOWER(product.sku) LIKE LOWER(:search))',
+        { search: `%${search}%` }
+      )
     }
 
-    const [products, total] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-          dealerProducts: {
-            where: {
-              dealerId: dealer.id,
-              isActive: true,
-            },
-            select: {
-              price: true,
-              discountRate: true,
-            },
-          },
-        },
-        orderBy: [
-          { isFeatured: 'desc' },
-          { createdAt: 'desc' },
-        ],
-        skip,
-        take: limit,
-      }),
-      prisma.product.count({ where }),
-    ])
+    queryBuilder
+      .orderBy('product.isFeatured', 'DESC')
+      .addOrderBy('product.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit)
 
-    // Fiyatları dealer fiyatları ile değiştir
-    const productsWithDealerPrices = products.map((product) => {
-      const dealerProduct = product.dealerProducts[0]
+    const [products, total] = await queryBuilder.getManyAndCount()
+
+    // Dealer fiyatları ile birleştir
+    const dealerProductMap = new Map(
+      dealerProducts.map((dp) => [dp.productId, dp])
+    )
+
+    const productsWithDealerPrices = products.map((product: any) => {
+      const dealerProduct = dealerProductMap.get(product.id)
       let finalPrice = product.price
 
       if (dealerProduct) {
@@ -120,5 +129,3 @@ export async function GET(req: NextRequest) {
     )
   }
 }
-
-

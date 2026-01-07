@@ -116,7 +116,7 @@ export async function PUT(
     if (shortDescription !== undefined) existingProduct.shortDescription = shortDescription
     if (sku !== undefined) existingProduct.sku = sku
     if (price !== undefined) existingProduct.price = parseFloat(price)
-    if (comparePrice !== undefined) existingProduct.comparePrice = comparePrice ? parseFloat(comparePrice) : null
+    if (comparePrice !== undefined) existingProduct.comparePrice = comparePrice ? parseFloat(comparePrice) : undefined
     if (stock !== undefined) existingProduct.stock = parseInt(stock)
     if (trackStock !== undefined) existingProduct.trackStock = trackStock
     if (images !== undefined) {
@@ -134,19 +134,19 @@ export async function PUT(
     if (isActive !== undefined) existingProduct.isActive = isActive
     if (isFeatured !== undefined) existingProduct.isFeatured = isFeatured
     if (unit !== undefined) existingProduct.unit = unit
-    if (baseName !== undefined) existingProduct.baseName = baseName || null
+    if (baseName !== undefined) existingProduct.baseName = baseName || undefined
     if (weight !== undefined) {
-      // Weight boş veya null ise null yap, değilse parseFloat ile dönüştür
-      // 0 değeri de geçerli bir weight olabilir (örn: 0.5g), bu yüzden 0'ı null yapmıyoruz
+      // Weight boş veya null ise undefined yap, değilse parseFloat ile dönüştür
+      // 0 değeri de geçerli bir weight olabilir (örn: 0.5g), bu yüzden 0'ı undefined yapmıyoruz
       const weightValue = weight === '' || weight === null || weight === undefined 
-        ? null 
+        ? undefined 
         : parseFloat(weight)
-      existingProduct.weight = isNaN(weightValue) ? null : weightValue
+      existingProduct.weight = (weightValue !== undefined && !isNaN(weightValue)) ? weightValue : undefined
     }
     if (categoryId !== undefined) {
       if (categoryId === '' || categoryId === null) {
-        existingProduct.category = null
-        existingProduct.categoryId = null
+        existingProduct.category = undefined
+        existingProduct.categoryId = undefined
       } else {
         const categoryRepo = await getCategoryRepository()
         const category = await categoryRepo.findOne({ where: { id: categoryId } })

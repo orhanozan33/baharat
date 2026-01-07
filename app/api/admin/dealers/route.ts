@@ -79,11 +79,10 @@ export async function POST(req: NextRequest) {
     const dealer = dealerRepo.create({
       userId: savedUser.id,
       companyName,
-      taxNumber: taxNumber || null,
+      ...(taxNumber && { taxNumber }),
       discountRate: discountRate || 0,
-      address: address || null,
-      phone: phone || null,
-      email: null,
+      ...(address && { address }),
+      ...(phone && { phone }),
       isActive: true,
     })
 
@@ -91,7 +90,7 @@ export async function POST(req: NextRequest) {
 
     // Relations ile tekrar yükle
     const dealerWithRelations = await dealerRepo.findOne({
-      where: { id: savedDealer.id },
+      where: { id: (savedDealer as any).id },
       relations: ['user'],
     })
 

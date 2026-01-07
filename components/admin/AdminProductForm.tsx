@@ -117,7 +117,7 @@ export default function AdminProductForm({ product, categories }: AdminProductFo
   const handleRemoveImage = (index: number) => {
     setFormData({
       ...formData,
-      images: formData.images.filter((_, i) => i !== index),
+      images: formData.images.filter((_: any, i: number) => i !== index),
     })
   }
 
@@ -153,12 +153,12 @@ export default function AdminProductForm({ product, categories }: AdminProductFo
     setError('')
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
+      const uploadFormData = new FormData()
+      uploadFormData.append('file', file)
 
       const response = await fetch('/api/admin/upload', {
         method: 'POST',
-        body: formData,
+        body: uploadFormData,
       })
 
       if (!response.ok) {

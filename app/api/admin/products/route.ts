@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
 
     // İlişkilerle birlikte getir
     const productWithCategory = await productRepo.findOne({
-      where: { id: savedProduct.id },
+      where: { id: (savedProduct as any).id },
       relations: ['category'],
     })
 

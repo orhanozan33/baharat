@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getProductRepository, getOrderItemRepository, getDealerProductRepository } from '@/lib/db'
 import { extractAuthToken, verifyToken } from '@/lib/auth'
 import { createSlug } from '@/lib/utils'
-import { PRODUCT_GROUPS } from './product-data'
+import { PRODUCT_GROUPS } from '../product-data'
 
 export async function POST(req: NextRequest) {
   const token = extractAuthToken(req)

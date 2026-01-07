@@ -45,8 +45,8 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
   },
-  // TypeORM için server-side external packages
-  serverExternalPackages: ['typeorm', 'pg'],
+  // TypeORM için server-side external packages (Next.js 14.2+ için)
+  // Note: serverExternalPackages Next.js 14.2'de experimental olabilir
   
   // Production optimizations
   swcMinify: true,

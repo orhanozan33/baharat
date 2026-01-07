@@ -61,22 +61,8 @@ export function Navbar({ locale }: NavbarProps) {
 
   const currentPath = pathname ? pathname.replace(`/${locale}`, '') || '/' : '/'
   
-  // Translations hook'unu sadece mounted olduktan sonra kullan
-  let t: (key: string) => string
-  try {
-    t = useTranslations()
-  } catch (error) {
-    // Fallback translations
-    const translations: Record<string, string> = {
-      'nav.search': 'Ürün ara...',
-      'nav.orders': 'Siparişlerim',
-      'nav.allProducts': 'Tüm Ürünler',
-      'nav.categories': 'Kategoriler',
-      'nav.campaigns': 'Kampanyalar',
-      'nav.newProducts': 'Yeni Ürünler',
-    }
-    t = (key: string) => translations[key] || key
-  }
+  // Translations hook - React Hook rules: always call hooks unconditionally
+  const t = useTranslations()
 
   return (
     <>

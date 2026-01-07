@@ -67,7 +67,6 @@ export default function CheckoutPage() {
           productId: item.productId,
           quantity: item.quantity,
         })),
-        shippingProvince: formData.shippingProvince,
         ...formData,
       }
 

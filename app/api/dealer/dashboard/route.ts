@@ -1,25 +1,29 @@
+import 'reflect-metadata'
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { checkDealer } from '@/lib/auth-helpers'
-import { OrderStatus } from '@prisma/client'
+import { getDealerRepository, getOrderRepository, getDealerProductRepository } from '@/lib/db'
+import { extractAuthToken, verifyToken } from '@/lib/auth'
+import { OrderStatus } from '@/entities/enums/OrderStatus'
+import { Not } from 'typeorm'
 
 export async function GET(req: NextRequest) {
-  const auth = await checkDealer(req)
-  if (!auth) {
+  const token = extractAuthToken(req)
+  if (!token) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const payload = verifyToken(token)
+  if (!payload || payload.role !== 'DEALER') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
-    const dealer = await prisma.dealer.findUnique({
-      where: { userId: auth.userId },
-      include: {
-        _count: {
-          select: {
-            orders: true,
-            dealerProducts: true,
-          },
-        },
-      },
+    const dealerRepo = await getDealerRepository()
+    const orderRepo = await getOrderRepository()
+    const dealerProductRepo = await getDealerProductRepository()
+
+    const dealer = await dealerRepo.findOne({
+      where: { userId: payload.userId },
+      relations: ['user'],
     })
 
     if (!dealer || !dealer.isActive) {
@@ -32,48 +36,30 @@ export async function GET(req: NextRequest) {
     const [
       totalOrders,
       pendingOrders,
-      totalRevenue,
+      totalRevenueResult,
       recentOrders,
+      totalProducts,
     ] = await Promise.all([
-      prisma.order.count({
-        where: { dealerId: dealer.id },
-      }),
-      prisma.order.count({
+      orderRepo.count({ where: { dealerId: dealer.id } }),
+      orderRepo.count({
         where: {
           dealerId: dealer.id,
           status: OrderStatus.PENDING,
         },
       }),
-      prisma.order.aggregate({
-        where: {
-          dealerId: dealer.id,
-          status: {
-            not: OrderStatus.CANCELLED,
-          },
-        },
-        _sum: {
-          total: true,
-        },
-      }),
-      prisma.order.findMany({
+      orderRepo
+        .createQueryBuilder('order')
+        .select('SUM(order.total)', 'sum')
+        .where('order.dealerId = :dealerId', { dealerId: dealer.id })
+        .andWhere('order.status != :status', { status: OrderStatus.CANCELLED })
+        .getRawOne(),
+      orderRepo.find({
         where: { dealerId: dealer.id },
         take: 10,
-        orderBy: {
-          createdAt: 'desc',
-        },
-        include: {
-          items: {
-            take: 1,
-            include: {
-              product: {
-                select: {
-                  name: true,
-                },
-              },
-            },
-          },
-        },
+        order: { createdAt: 'DESC' },
+        relations: ['items', 'items.product'],
       }),
+      dealerProductRepo.count({ where: { dealerId: dealer.id, isActive: true } }),
     ])
 
     return NextResponse.json({
@@ -85,10 +71,13 @@ export async function GET(req: NextRequest) {
       stats: {
         totalOrders,
         pendingOrders,
-        totalRevenue: totalRevenue._sum.total || 0,
-        totalProducts: dealer._count.dealerProducts,
+        totalRevenue: parseFloat(totalRevenueResult?.sum || '0') || 0,
+        totalProducts,
       },
-      recentOrders,
+      recentOrders: recentOrders.map((order: any) => ({
+        ...order,
+        items: order.items?.slice(0, 1) || [],
+      })),
     })
   } catch (error) {
     console.error('Get dealer dashboard error:', error)
@@ -98,5 +87,3 @@ export async function GET(req: NextRequest) {
     )
   }
 }
-
-

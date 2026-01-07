@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
         // Order items oluştur
         for (const itemData of orderItemsData) {
           const orderItem = orderItemRepo.create({
-            orderId: savedOrder.id,
+            orderId: (savedOrder as any).id,
             productId: itemData.productId,
             quantity: itemData.quantity,
             price: itemData.price,
@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
         
         // Order'ı items ile birlikte getir
         const orderWithItems = await orderRepo.findOne({
-          where: { id: savedOrder.id },
+          where: { id: (savedOrder as any).id },
           relations: ['items', 'items.product'],
         })
         
@@ -304,7 +304,7 @@ export async function POST(request: NextRequest) {
     // Order items oluştur
     for (const itemData of orderItemsData) {
       const orderItem = orderItemRepo.create({
-        orderId: savedOrder.id,
+        orderId: (savedOrder as any).id,
         productId: itemData.productId,
         quantity: itemData.quantity,
         price: itemData.price,
@@ -331,7 +331,7 @@ export async function POST(request: NextRequest) {
 
     // Order'ı items ile birlikte getir
     const orderWithItems = await orderRepo.findOne({
-      where: { id: savedOrder.id },
+      where: { id: (savedOrder as any).id },
       relations: ['items', 'items.product'],
     })
 

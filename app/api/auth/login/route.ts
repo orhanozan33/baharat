@@ -25,6 +25,7 @@ void OrderItem
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserRepository, getAdminRepository, getDealerRepository } from '@/lib/db'
 import { generateToken } from '@/lib/auth'
+import { UserRole } from '@/entities/enums/UserRole'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Otomatik rol belirleme
-    let userRole = user.role || 'USER'
+    let userRole: UserRole = user.role || UserRole.USER
 
     // Admin kontrolü
     try {
@@ -124,7 +125,7 @@ export async function POST(request: NextRequest) {
         where: { userId: user.id },
       })
       if (admin) {
-        userRole = 'ADMIN'
+        userRole = UserRole.ADMIN
       } else {
         // Bayi kontrolü
         try {
@@ -133,17 +134,17 @@ export async function POST(request: NextRequest) {
             where: { userId: user.id },
           })
           if (dealer && dealer.isActive) {
-            userRole = 'DEALER'
+            userRole = UserRole.DEALER
           } else {
-            userRole = 'USER'
+            userRole = UserRole.USER
           }
         } catch (dealerError: any) {
-          userRole = 'USER'
+          userRole = UserRole.USER
         }
       }
     } catch (adminError: any) {
       // Admin kontrolü başarısız olsa bile devam et
-      userRole = user.role || 'USER'
+      userRole = user.role || UserRole.USER
     }
 
     // User role'ü güncelle (eğer değiştiyse)

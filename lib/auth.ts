@@ -9,14 +9,17 @@ export interface JWTPayload {
 }
 
 export function generateToken(payload: JWTPayload): string {
-  return jwt.sign(payload, process.env.JWT_SECRET || 'fallback-secret', {
+  const secret = (process.env.JWT_SECRET || 'fallback-secret') as string
+  // @ts-ignore - JWT secret type issue
+  return jwt.sign(payload, secret, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   })
 }
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JWTPayload
+    const secret = String(process.env.JWT_SECRET || 'fallback-secret')
+    return jwt.verify(token, secret) as JWTPayload
   } catch {
     return null
   }

@@ -29,7 +29,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Database'de kullanıcı oluştur
-    const userRepo = await getUserRepository()
     
     const user = userRepo.create({
       supabaseId: randomUUID(),

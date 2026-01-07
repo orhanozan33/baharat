@@ -4,8 +4,10 @@ import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n'
 import { useEffect, useState } from 'react'
 
+import { type Locale } from '@/i18n'
+
 interface FooterProps {
-  locale: string
+  locale: Locale
 }
 
 export function Footer({ locale }: FooterProps) {
