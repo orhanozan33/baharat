@@ -1,0 +1,253 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  DEALER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+// User - Genel kullanıcı (Supabase Auth ile ilişkili)
+model User {
+  id            String    @id @default(uuid())
+  supabaseId    String    @unique
+  email         String    @unique
+  name          String?
+  phone         String?
+  address       String?
+  city          String?
+  postalCode    String?
+  role          UserRole  @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  admin         Admin?
+  dealer        Dealer?
+  orders        Order[]
+  
+  @@map("users")
+}
+
+// Admin - Yönetici kullanıcı
+model Admin {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName      String
+  permissions   String[]  // JSON array olarak saklanabilir
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@map("admins")
+}
+
+// Dealer - Bayi/B2B kullanıcı
+model Dealer {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName   String
+  taxNumber     String?   @unique
+  discountRate  Float     @default(0) // İskonto yüzdesi (0-100)
+  isActive      Boolean   @default(true)
+  address       String?
+  phone         String?
+  email         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  orders        Order[]
+  dealerProducts DealerProduct[]
+  
+  @@map("dealers")
+}
+
+// Category - Ürün kategorileri
+model Category {
+  id            String    @id @default(uuid())
+  name          String
+  slug          String    @unique
+  description   String?
+  image         String?
+  parentId      String?
+  parent        Category? @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children      Category[] @relation("CategoryTree")
+  order         Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  products      Product[]
+  
+  @@index([slug])
+  @@index([parentId])
+  @@map("categories")
+}
+
+// Product - Ürünler
+model Product {
+  id            String    @id @default(uuid())
+  name          String
+  slug          String    @unique
+  description   String?   @db.Text
+  shortDescription String? @db.Text
+  sku           String    @unique
+  price         Float
+  comparePrice  Float?    // Karşılaştırma fiyatı
+  costPrice     Float?    // Maliyet
+  stock         Int       @default(0)
+  trackStock    Boolean   @default(true)
+  weight        Float?
+  images        String[]  // JSON array
+  isActive      Boolean   @default(true)
+  isFeatured    Boolean   @default(false)
+  categoryId    String?
+  category      Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  metaTitle     String?
+  metaDescription String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  orderItems    OrderItem[]
+  dealerProducts DealerProduct[]
+  
+  @@index([slug])
+  @@index([categoryId])
+  @@index([isActive, isFeatured])
+  @@map("products")
+}
+
+// DealerProduct - Bayi özel fiyatlandırma
+model DealerProduct {
+  id            String    @id @default(uuid())
+  dealerId      String
+  dealer        Dealer    @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  price         Float     // Bayi özel fiyat
+  discountRate  Float     @default(0) // Ek iskonto
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@unique([dealerId, productId])
+  @@index([dealerId])
+  @@index([productId])
+  @@map("dealer_products")
+}
+
+// Order - Siparişler
+model Order {
+  id            String      @id @default(uuid())
+  orderNumber   String      @unique
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dealerId      String?
+  dealer        Dealer?     @relation(fields: [dealerId], references: [id], onDelete: SetNull)
+  status        OrderStatus @default(PENDING)
+  subtotal      Float
+  tax           Float       @default(0)
+  shipping      Float       @default(0)
+  discount      Float       @default(0)
+  total         Float
+  currency      String      @default("TRY")
+  
+  // Shipping bilgileri
+  shippingName      String
+  shippingPhone     String
+  shippingAddress   String
+  shippingCity      String
+  shippingPostalCode String?
+  
+  // Billing bilgileri
+  billingName       String?
+  billingAddress    String?
+  billingTaxNumber  String?
+  
+  notes             String?   @db.Text
+  trackingNumber    String?
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  items         OrderItem[]
+  invoices      Invoice[]
+  
+  @@index([userId])
+  @@index([dealerId])
+  @@index([status])
+  @@index([orderNumber])
+  @@map("orders")
+}
+
+// Invoice - Faturalar
+model Invoice {
+  id            String    @id @default(uuid())
+  invoiceNumber String    @unique
+  orderId       String
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  subtotal      Float
+  tax           Float     @default(0)
+  shipping      Float     @default(0)
+  discount      Float     @default(0)
+  total         Float
+  currency      String    @default("CAD")
+  
+  // Müşteri bilgileri (snapshot)
+  customerName      String
+  customerPhone     String?
+  customerAddress   String?   @db.Text
+  customerCity      String?
+  customerPostalCode String?
+  billingName       String?
+  billingAddress    String?   @db.Text
+  billingTaxNumber  String?
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  @@index([invoiceNumber])
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("invoices")
+}
+
+// OrderItem - Sipariş kalemleri
+model OrderItem {
+  id            String    @id @default(uuid())
+  orderId       String
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity      Float
+  price         Float     // Sipariş anındaki fiyat
+  discount      Float     @default(0)
+  total         Float
+  sku           String?   // Sipariş anındaki SKU (değişiklik olabilir)
+  createdAt     DateTime  @default(now())
+  
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
