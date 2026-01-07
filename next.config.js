@@ -1,24 +1,20 @@
 /** @type {import('next').NextConfig} */
+const path = require('path')
+
 const nextConfig = {
-  // Performance optimizations
   compress: true,
   poweredByHeader: false,
-  
-  // Vercel optimizations
-  output: 'standalone', // Vercel için standalone output
+  output: 'standalone',
   
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
     },
-    // Package import optimizations (TypeORM hariç - external olarak işaretlendi)
     optimizePackageImports: [
       '@hookform/resolvers',
       'react-hook-form',
       'next-intl',
     ],
-    // TypeORM için server components external packages
-    // Bu paketler server-side only olmalı ve webpack bundle'ına dahil edilmemeli
     serverComponentsExternalPackages: [
       'typeorm',
       'pg',
@@ -28,32 +24,22 @@ const nextConfig = {
     ],
   },
   
-  // Webpack optimizations for Vercel
-  webpack: (config, { dev, isServer }) => {
-    // Server-side only: TypeORM ve database paketleri
+  webpack: (config, { isServer, webpack }) => {
+    // Server-side: TypeORM external
     if (isServer) {
-      // TypeORM için external packages
       config.externals = config.externals || []
-      config.externals.push({
-        'typeorm': 'commonjs typeorm',
-        'pg': 'commonjs pg',
-        'reflect-metadata': 'commonjs reflect-metadata',
-      })
-    }
-    
-    // Client-side optimizations
-    if (dev && !isServer) {
-      config.optimization = {
-        ...config.optimization,
-        removeAvailableModules: false,
-        removeEmptyChunks: false,
-        splitChunks: false,
+      if (Array.isArray(config.externals)) {
+        config.externals.push({
+          'typeorm': 'commonjs typeorm',
+          'pg': 'commonjs pg',
+          'reflect-metadata': 'commonjs reflect-metadata',
+        })
       }
     }
     
-    // Ignore optional TypeORM dependencies (browser/client-side)
+    // Fallback for optional dependencies
     config.resolve.fallback = {
-      ...config.resolve.fallback,
+      ...(config.resolve.fallback || {}),
       'react-native-sqlite-storage': false,
       '@sap/hana-client/extension/Stream': false,
       'mysql': false,
@@ -65,57 +51,44 @@ const nextConfig = {
       'redis': false,
       'mongodb': false,
       'oracledb': false,
+      '@prisma/client': false,
     }
     
-    // Alias for Prisma (stub) - ignore @prisma/client
+    // Alias to redirect Prisma imports to stub
+    const prismaStubPath = path.resolve(__dirname, 'lib/prisma.ts')
     config.resolve.alias = {
-      ...config.resolve.alias,
+      ...(config.resolve.alias || {}),
+      '@/lib/prisma': prismaStubPath,
+      '@prisma/client': prismaStubPath,
     }
     
-    // Ignore @prisma/client imports
-    if (!config.resolve.fallback) {
-      config.resolve.fallback = {}
-    }
-    config.resolve.fallback['@prisma/client'] = false
-    
-    // Ignore TypeORM driver files that aren't needed
-    config.resolve.alias = {
-      ...config.resolve.alias,
-    }
+    // Use NormalModuleReplacementPlugin to replace Prisma imports
+    config.plugins = config.plugins || []
+    config.plugins.push(
+      new webpack.NormalModuleReplacementPlugin(
+        /^@prisma\/client$/,
+        prismaStubPath
+      ),
+      new webpack.NormalModuleReplacementPlugin(
+        /^@\/lib\/prisma$/,
+        prismaStubPath
+      )
+    )
     
     return config
   },
   
   images: {
     remotePatterns: [
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-      },
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
+      { protocol: 'http', hostname: 'localhost' },
+      { protocol: 'https', hostname: '**' },
     ],
-    // Image optimization
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
   },
   
-  // Production optimizations
   swcMinify: true,
-  reactStrictMode: false, // Performance için strict mode kapalı
-  
-  // Development optimizations
-  onDemandEntries: {
-    maxInactiveAge: 25 * 1000,
-    pagesBufferLength: 2,
-  },
-  
-  // Vercel-specific optimizations
-  env: {
-    // Environment variables will be available at build time
-  },
+  reactStrictMode: false,
 }
 
 module.exports = nextConfig

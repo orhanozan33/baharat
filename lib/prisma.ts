@@ -1,15 +1,60 @@
-// Stub file for Prisma - not used, but prevents build errors
+// Stub file for Prisma - prevents build errors
 // This project uses TypeORM instead of Prisma
 
+// Export a complete stub that matches Prisma Client API
 export const prisma = {
-  // Empty stub to prevent import errors
-  user: { findUnique: () => null, findMany: () => [], create: () => null },
-  order: { findUnique: () => null, findMany: () => [], create: () => null },
-  product: { findUnique: () => null, findMany: () => [], create: () => null },
-  category: { findUnique: () => null, findMany: () => [], create: () => null },
-  dealer: { findUnique: () => null, findMany: () => [], create: () => null },
+  user: {
+    findUnique: () => Promise.resolve(null),
+    findMany: () => Promise.resolve([]),
+    create: () => Promise.resolve(null),
+    update: () => Promise.resolve(null),
+    delete: () => Promise.resolve(null),
+    count: () => Promise.resolve(0),
+  },
+  order: {
+    findUnique: () => Promise.resolve(null),
+    findMany: () => Promise.resolve([]),
+    create: () => Promise.resolve(null),
+    update: () => Promise.resolve(null),
+    delete: () => Promise.resolve(null),
+    count: () => Promise.resolve(0),
+    aggregate: () => Promise.resolve({ _sum: { total: 0 } }),
+    groupBy: () => Promise.resolve([]),
+  },
+  product: {
+    findUnique: () => Promise.resolve(null),
+    findMany: () => Promise.resolve([]),
+    create: () => Promise.resolve(null),
+    update: () => Promise.resolve(null),
+    delete: () => Promise.resolve(null),
+    count: () => Promise.resolve(0),
+  },
+  category: {
+    findUnique: () => Promise.resolve(null),
+    findMany: () => Promise.resolve([]),
+    create: () => Promise.resolve(null),
+    update: () => Promise.resolve(null),
+    delete: () => Promise.resolve(null),
+    count: () => Promise.resolve(0),
+  },
+  dealer: {
+    findUnique: () => Promise.resolve(null),
+    findMany: () => Promise.resolve([]),
+    create: () => Promise.resolve(null),
+    update: () => Promise.resolve(null),
+    delete: () => Promise.resolve(null),
+    count: () => Promise.resolve(0),
+  },
+  orderItem: {
+    findUnique: () => Promise.resolve(null),
+    findMany: () => Promise.resolve([]),
+    create: () => Promise.resolve(null),
+    update: () => Promise.resolve(null),
+    delete: () => Promise.resolve(null),
+    count: () => Promise.resolve(0),
+    groupBy: () => Promise.resolve([]),
+  },
 } as any
 
-// Export default for compatibility
+// Default export for compatibility
 export default prisma
-
