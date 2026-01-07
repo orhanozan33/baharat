@@ -44,6 +44,12 @@ if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is required')
 }
 
+// Supabase Postgres genelde SSL ister
+const needsSsl =
+  process.env.DB_SSL === 'true' ||
+  process.env.DATABASE_URL.includes('supabase.co') ||
+  process.env.DATABASE_URL.includes('sslmode=require')
+
 export const AppDataSource = new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
@@ -58,6 +64,7 @@ export const AppDataSource = new DataSource({
     connectionTimeoutMillis: 30000, // Timeout artırıldı
     idleTimeoutMillis: 30000,
     maxUses: 7500,
+    ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {}),
   },
   cache: false,
   // Metadata'yı zorla yükle
