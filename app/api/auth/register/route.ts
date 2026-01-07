@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserRepository } from '@/lib/db'
 import { generateToken } from '@/lib/auth'
 import { UserRole } from '@/entities/enums/UserRole'
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@/lib/utils-uuid'
 
 export async function POST(request: NextRequest) {
   try {
