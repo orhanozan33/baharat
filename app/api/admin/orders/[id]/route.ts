@@ -6,7 +6,7 @@ import { OrderStatus } from '@/entities/enums/OrderStatus'
 import { serializeOrder } from '@/lib/serialize'
 import { Payment, PaymentType } from '@/entities/Payment'
 import { UserRole } from '@/entities/enums/UserRole'
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'node:crypto'
 import bcrypt from 'bcryptjs'
 
 export async function GET(

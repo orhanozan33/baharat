@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserRepository, getDealerRepository } from '@/lib/db'
 import { checkAdmin } from '@/lib/auth-helpers'
 import { serializeDealer } from '@/lib/serialize'
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'node:crypto'
 import bcrypt from 'bcryptjs'
 
 export async function POST(req: NextRequest) {
