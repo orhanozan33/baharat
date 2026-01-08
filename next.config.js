@@ -89,6 +89,20 @@ const nextConfig = {
   
   swcMinify: true,
   reactStrictMode: false,
+  
+  // Vercel build optimizasyonları
+  typescript: {
+    // Build sırasında type checking'i atla (sadece warning'ler varsa)
+    ignoreBuildErrors: false,
+  },
+  
+  eslint: {
+    // Build sırasında ESLint'i çalıştır ama hata olarak sayma (sadece warning'ler varsa)
+    ignoreDuringBuilds: false,
+  },
+  
+  // Build output optimizasyonu
+  productionBrowserSourceMaps: false,
 }
 
 module.exports = nextConfig
