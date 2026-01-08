@@ -55,8 +55,10 @@ function getDataSource(): DataSource {
     throw new Error(error + ' Please check Vercel Environment Variables and redeploy.')
   }
 
-  // Localhost kontrolü
-  if (databaseUrl.includes('localhost') || databaseUrl.includes('127.0.0.1')) {
+  // Localhost kontrolü - sadece production'da (Vercel)
+  // Local development'ta localhost kullanılabilir
+  if ((process.env.VERCEL_ENV || process.env.NODE_ENV === 'production') && 
+      (databaseUrl.includes('localhost') || databaseUrl.includes('127.0.0.1'))) {
     const error = '❌ DATABASE_URL points to localhost. This will not work on Vercel!'
     console.error(error)
     console.error('DATABASE_URL should point to Supabase, not localhost.')
