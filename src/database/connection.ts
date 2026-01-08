@@ -70,14 +70,16 @@ function getDataSource(): DataSource {
   const needsSsl =
     process.env.DB_SSL === 'true' ||
     databaseUrl.includes('supabase.co') ||
-    databaseUrl.includes('sslmode=require')
+    databaseUrl.includes('sslmode=require') ||
+    databaseUrl.includes('pooler.supabase.com')
 
   console.log('✅ Initializing database connection...')
   console.log('Database URL preview:', databaseUrl.substring(0, 40) + '...')
   console.log('SSL required:', needsSsl)
   console.log('Environment:', process.env.NODE_ENV, process.env.VERCEL_ENV)
 
-  _appDataSource = new DataSource({
+  // Connection options
+  const connectionOptions: any = {
     type: 'postgres',
     url: databaseUrl,
     synchronize: false, // Performance için kapatıldı - migrations kullanın
@@ -88,15 +90,31 @@ function getDataSource(): DataSource {
     extra: {
       max: 20, // Connection pool size artırıldı
       min: 5, // Minimum pool size
-      connectionTimeoutMillis: 30000, // Timeout artırıldı
+      connectionTimeoutMillis: 60000, // Timeout artırıldı (60 saniye)
       idleTimeoutMillis: 30000,
       maxUses: 7500,
-      ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+      // IPv4'ü zorla - IPv6 timeout sorununu çözmek için
+      family: 4, // IPv4 kullan (0 = IPv6, 4 = IPv4, 6 = IPv6)
     },
     cache: false,
     // Metadata'yı zorla yükle
     entitySkipConstructor: false,
-  })
+  }
+
+  // Supabase SSL ayarları - self-signed certificate'ları kabul et
+  if (needsSsl) {
+    // TypeORM ve pg için SSL ayarları
+    connectionOptions.extra.ssl = {
+      rejectUnauthorized: false, // Self-signed certificate'ları kabul et
+    }
+    // Ayrıca connection string'de de SSL parametrelerini ekle
+    if (!databaseUrl.includes('sslmode=')) {
+      // URL'ye sslmode ekle (eğer yoksa)
+      connectionOptions.url = databaseUrl + (databaseUrl.includes('?') ? '&' : '?') + 'sslmode=require'
+    }
+  }
+
+  _appDataSource = new DataSource(connectionOptions)
 
   return _appDataSource
 }

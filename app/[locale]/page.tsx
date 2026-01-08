@@ -21,6 +21,10 @@ export default async function HomePage({
   let categories: any[] = []
 
   try {
+    // Ensure database connection
+    const { connectDB } = await import('@/lib/db')
+    await connectDB()
+    
     const productRepo = await getProductRepository()
     const categoryRepo = await getCategoryRepository()
 
