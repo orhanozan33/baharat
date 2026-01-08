@@ -21,7 +21,8 @@ export async function GET() {
     }
 
     // Check if DATABASE_URL contains localhost (wrong)
-    const databaseUrl = process.env.DATABASE_URL
+    const databaseUrl = process.env.DATABASE_URL!
+    // We know it's defined here because we checked above
     const isLocalhost = databaseUrl.includes('localhost') || databaseUrl.includes('127.0.0.1')
     const isSupabase = databaseUrl.includes('supabase.co')
     
