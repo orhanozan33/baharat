@@ -1,31 +1,16 @@
 // reflect-metadata EN ÖNCE import edilmeli
 import 'reflect-metadata'
 
-// Entity'leri EN ÖNCE import et - metadata yüklenmesi için KRİTİK
-// Side-effect import'lar - metadata'yı yüklemek için
-import { User } from '@/entities/User'
-import { Admin } from '@/entities/Admin'
-import { Dealer } from '@/entities/Dealer'
-import { Category } from '@/entities/Category'
-import { Product } from '@/entities/Product'
-import { DealerProduct } from '@/entities/DealerProduct'
-import { Order } from '@/entities/Order'
-import { OrderItem } from '@/entities/OrderItem'
+// ÖNCE repositories'i import et - bu tüm entity'leri yükler
+import '@/src/database/repositories'
 
-// Entity'leri kullanılabilir hale getir (metadata yüklensin diye)
-void User
-void Admin
-void Dealer
-void Category
-void Product
-void DealerProduct
-void Order
-void OrderItem
+// Sonra typeorm'u import et
+import '@/src/database/typeorm'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserRepository, getAdminRepository, getDealerRepository } from '@/lib/db'
+import { connectDB, getUserRepository, getAdminRepository, getDealerRepository } from '@/lib/db'
 import { generateToken } from '@/lib/auth'
-import { UserRole } from '@/entities/enums/UserRole'
+import { UserRole } from '@/src/database/entities/enums/UserRole'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
@@ -40,6 +25,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Database bağlantısını kur
+    await connectDB()
+    
     // Database connection kontrolü
     let userRepo
     try {

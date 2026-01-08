@@ -1,12 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSettingsRepository } from '@/lib/db'
-import { Settings } from '@/entities/Settings'
+// reflect-metadata EN ÖNCE import edilmeli
+import 'reflect-metadata'
 
+// Entity'leri direkt import et - metadata yüklenmesi için KRİTİK
+import { Settings } from '@/src/database/entities/Settings'
 void Settings
+
+// Repositories ve typeorm'u import et
+import '@/src/database/repositories'
+import '@/src/database/typeorm'
+
+import { NextRequest, NextResponse } from 'next/server'
+import { connectDB, getSettingsRepository } from '@/lib/db'
 
 // GET - Social media settings değerlerini al (public, auth gerekmez)
 export async function GET(request: NextRequest) {
   try {
+    // Database bağlantısını kur
+    await connectDB()
+    
     const settingsRepo = await getSettingsRepository()
     const allSettings = await settingsRepo.find()
     const settingsMap: { [key: string]: string } = {}
@@ -31,5 +42,6 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
 
 

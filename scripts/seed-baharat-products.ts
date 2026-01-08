@@ -1,12 +1,20 @@
-import 'reflect-metadata'
+// .env dosyasını EN ÖNCE yükle - data-source.ts'den önce
 import { config } from 'dotenv'
 import { resolve } from 'path'
+config({ path: resolve(process.cwd(), '.env.local') })
 
-// .env dosyasını yükle
-config({ path: resolve(process.cwd(), '.env') })
+// reflect-metadata EN ÖNCE import edilmeli
+import 'reflect-metadata'
 
-import { getConnection } from '../lib/database'
-import { getCategoryRepository, getProductRepository } from '../lib/db'
+// reflect-metadata EN ÖNCE import edilmeli
+import 'reflect-metadata'
+
+// Entity'leri import et - metadata yüklenmesi için
+import '../src/database/entities/Category'
+import '../src/database/entities/Product'
+
+import { connectDB } from '../src/database/typeorm'
+import { getCategoryRepository, getProductRepository } from '../src/database/repositories'
 
 // Slug oluşturma helper
 function createSlug(text: string): string {
@@ -41,7 +49,10 @@ async function seedBaharatProducts() {
   try {
     console.log('🌱 Baharat ürünleri ekleniyor...')
 
-    const connection = await getConnection()
+    // Database bağlantısını kur
+    await connectDB()
+    console.log('✅ Database bağlantısı kuruldu')
+
     const categoryRepo = await getCategoryRepository()
     const productRepo = await getProductRepository()
 

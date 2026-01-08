@@ -1,17 +1,24 @@
 // reflect-metadata EN ÖNCE import edilmeli
 import 'reflect-metadata'
 
-// Entity'leri import et - metadata yüklenmesi için
-import { Product } from '@/entities/Product'
-import { Category } from '@/entities/Category'
+// Entity'leri direkt import et - metadata yüklenmesi için
+import { Product } from '@/src/database/entities/Product'
+import { Category } from '@/src/database/entities/Category'
 void Product
 void Category
 
+// Repositories ve typeorm'u import et
+import '@/src/database/repositories'
+import '@/src/database/typeorm'
+
 import { NextRequest, NextResponse } from 'next/server'
-import { getProductRepository } from '@/lib/db'
+import { connectDB, getProductRepository } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
+    // Database bağlantısını kur (metadata yüklendikten sonra)
+    await connectDB()
+    
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category')
     const search = searchParams.get('search')

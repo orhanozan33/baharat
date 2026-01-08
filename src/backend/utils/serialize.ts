@@ -32,6 +32,7 @@ export function serializeProduct(product: any): any {
     weight: product.weight ? Number(product.weight) : null,
     baseName: product.baseName || null,
     trackStock: product.trackStock !== undefined ? Boolean(product.trackStock) : true,
+    createdAt: product.createdAt ? (product.createdAt instanceof Date ? product.createdAt.toISOString() : product.createdAt) : null,
     category: product.category ? {
       id: product.category.id,
       name: product.category.name,

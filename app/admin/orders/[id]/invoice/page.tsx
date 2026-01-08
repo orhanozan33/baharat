@@ -37,3 +37,4 @@ export default async function AdminInvoicePage({
   return <InvoicePage order={serializeOrder(order)} />
 }
 
+

@@ -287,3 +287,4 @@ BEGIN
     RAISE NOTICE '📊 Tables created: users, admins, dealers, categories, products, orders, order_items, dealer_products, invoices, payments, checks, settings';
 END $$;
 
+

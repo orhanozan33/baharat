@@ -30,3 +30,4 @@ Write-Host "If this doesn't work, we can try:"
 Write-Host "- Option 1: With project ID: $connectionString1"
 Write-Host "- Option 3: Direct connection: $connectionString3"
 
+

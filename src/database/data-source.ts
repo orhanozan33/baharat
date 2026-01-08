@@ -1,7 +1,11 @@
 import 'reflect-metadata'
 import { DataSource } from 'typeorm'
 
-// Entity'leri import et - metadata yüklenmesi için gerekli
+// ============================================
+// ENTITY IMPORTS - Explicit imports (NO globs)
+// ============================================
+// These imports are CRITICAL for metadata loading
+// TypeORM reads metadata from these imports
 import { User } from './entities/User'
 import { Admin } from './entities/Admin'
 import { Dealer } from './entities/Dealer'
@@ -15,7 +19,11 @@ import { Payment } from './entities/Payment'
 import { Check } from './entities/Check'
 import { Settings } from './entities/Settings'
 
-// Entity'leri array'e koy
+// ============================================
+// ENTITY ARRAY - Explicit registration
+// ============================================
+// All entities must be explicitly listed here
+// DO NOT use glob patterns (e.g., __dirname + '/entities/*.ts')
 const entities = [
   User,
   Admin,
@@ -31,60 +39,76 @@ const entities = [
   Settings,
 ]
 
-/**
- * TypeORM DataSource configuration for Supabase Postgres
- * Compatible with Vercel serverless environment
- * 
- * Requirements:
- * - DATABASE_URL must be set (Session Pooler format recommended)
- * - SSL enabled with rejectUnauthorized: false for Supabase
- * - Connection pooling optimized for serverless
- */
-// Check if SSL is needed (Supabase requires SSL)
-const databaseUrl = process.env.DATABASE_URL || ''
-const needsSsl = 
-  process.env.DB_SSL === 'true' ||
-  databaseUrl.includes('supabase.co') ||
-  databaseUrl.includes('sslmode=require') ||
-  databaseUrl.includes('pooler.supabase.com')
+// ============================================
+// BUILD CONNECTION OPTIONS
+// ============================================
+function buildConnectionOptions() {
+  const dbUrl = process.env.DATABASE_URL || ''
+  
+  if (!dbUrl) {
+    throw new Error('DATABASE_URL environment variable is not set')
+  }
 
-// Build connection options
-const connectionOptions: any = {
-  type: 'postgres',
-  url: databaseUrl,
-  synchronize: false, // NEVER true in production
-  logging: process.env.NODE_ENV === 'development',
-  entities: entities,
-  migrations: [],
-  subscribers: [],
-  // Connection pool settings optimized for serverless
-  extra: {
-    // Connection pool size (adjust based on your needs)
-    max: 10, // Max connections per instance
-    min: 2,  // Min connections to keep alive
-    // Timeout settings
-    connectionTimeoutMillis: 10000, // 10 seconds
-    idleTimeoutMillis: 30000, // 30 seconds
-    // IPv4 preference (helps avoid IPv6 timeout issues)
-    family: 4,
-  },
+  const baseOptions: any = {
+    type: 'postgres',
+    synchronize: process.env.NODE_ENV === 'development',
+    logging: process.env.NODE_ENV === 'development',
+    entities: entities, // Explicit entity array
+    migrations: [],
+    subscribers: [],
+    extra: {
+      max: 10,
+      min: 2,
+      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 30000,
+      family: 4, // Force IPv4
+    },
+  }
+
+  // Parse DATABASE_URL
+  try {
+    const urlStr = dbUrl.replace(/^postgresql:/, 'postgres:')
+    const url = new URL(urlStr)
+    
+    baseOptions.host = url.hostname
+    baseOptions.port = parseInt(url.port || '5432')
+    baseOptions.username = decodeURIComponent(url.username || 'postgres')
+    baseOptions.password = decodeURIComponent(url.password || '')
+    baseOptions.database = url.pathname.replace(/^\//, '') || 'postgres'
+    
+    if (!baseOptions.password || typeof baseOptions.password !== 'string') {
+      throw new Error('Password is not a valid string')
+    }
+  } catch (error) {
+    console.warn('Failed to parse DATABASE_URL, using as-is:', error)
+    baseOptions.url = dbUrl
+  }
+
+  // Add SSL for Supabase
+  const needsSsl = 
+    process.env.DB_SSL === 'true' ||
+    dbUrl.includes('supabase.co') ||
+    dbUrl.includes('sslmode=require') ||
+    dbUrl.includes('pooler.supabase.com')
+  
+  if (needsSsl) {
+    baseOptions.extra.ssl = {
+      rejectUnauthorized: false,
+    }
+  }
+  
+  return baseOptions
 }
 
-// Add SSL configuration for Supabase
-if (needsSsl) {
-  // SSL must be in extra.ssl for pg driver
-  connectionOptions.extra.ssl = {
-    rejectUnauthorized: false, // Required for Supabase self-signed certificates
+// ============================================
+// LAZY DATA SOURCE INITIALIZATION
+// ============================================
+let _appDataSource: DataSource | null = null
+
+export function getAppDataSource(): DataSource {
+  if (!_appDataSource) {
+    const connectionOptions = buildConnectionOptions()
+    _appDataSource = new DataSource(connectionOptions)
   }
-  // Also set NODE_TLS_REJECT_UNAUTHORIZED for Node.js TLS
-  if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED) {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
-  }
-  // Ensure sslmode is in connection string
-  if (!databaseUrl.includes('sslmode=')) {
-    connectionOptions.url = databaseUrl + (databaseUrl.includes('?') ? '&' : '?') + 'sslmode=require'
-  }
+  return _appDataSource
 }
-
-export const AppDataSource = new DataSource(connectionOptions)
-

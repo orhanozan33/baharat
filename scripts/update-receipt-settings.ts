@@ -41,3 +41,4 @@ async function updateReceiptSettings() {
 
 updateReceiptSettings()
 
+

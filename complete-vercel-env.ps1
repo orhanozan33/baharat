@@ -118,3 +118,4 @@ if ($successCount -gt 0) {
     Write-Host "   https://baharat-e9n4lcvjx-orhanozan33.vercel.app/api/health/database" -ForegroundColor White
 }
 
+

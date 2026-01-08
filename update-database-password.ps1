@@ -64,3 +64,4 @@ if ($updated) {
     Write-Host "⚠️  DATABASE_URL bulunamadı veya zaten güncel" -ForegroundColor Yellow
 }
 
+

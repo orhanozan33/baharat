@@ -56,3 +56,4 @@ AND u.role = 'ADMIN';
 -- 3. Şifre için API kullanın: /api/auth/register
 -- 4. Veya mevcut kullanıcı varsa, sadece role'ü güncelleyin
 
+

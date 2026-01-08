@@ -1,7 +1,15 @@
+// reflect-metadata EN ÖNCE import edilmeli
 import 'reflect-metadata'
+
+// Entity'leri import et - metadata yüklenmesi için
+import { User } from '@/src/database/entities/User'
+import { Admin } from '@/src/database/entities/Admin'
+void User
+void Admin
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserRepository, getAdminRepository } from '@/lib/db'
-import { UserRole } from '@/entities/enums/UserRole'
+import { UserRole } from '@/src/database/entities/enums/UserRole'
 import { randomUUID } from '@/lib/utils-uuid'
 import bcrypt from 'bcryptjs'
 

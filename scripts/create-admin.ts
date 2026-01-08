@@ -1,29 +1,32 @@
-import 'reflect-metadata'
+// .env dosyasını EN ÖNCE yükle - data-source.ts'den önce
 import { config } from 'dotenv'
 import { resolve } from 'path'
+config({ path: resolve(process.cwd(), '.env.local') })
 
-// .env dosyasını yükle - EN ÜSTTE
-config({ path: resolve(process.cwd(), '.env') })
+// reflect-metadata EN ÖNCE import edilmeli
+import 'reflect-metadata'
 
 // Entity'leri import et - metadata yüklenmesi için
-import '../entities/User'
-import '../entities/Admin'
-import '../entities/Dealer'
-import '../entities/Category'
-import '../entities/Product'
-import '../entities/DealerProduct'
-import '../entities/Order'
-import '../entities/OrderItem'
+import '../src/database/entities/User'
+import '../src/database/entities/Admin'
+import '../src/database/entities/Dealer'
+import '../src/database/entities/Category'
+import '../src/database/entities/Product'
+import '../src/database/entities/DealerProduct'
+import '../src/database/entities/Order'
+import '../src/database/entities/OrderItem'
 
-import { getConnection } from '../lib/database'
-import { getUserRepository, getAdminRepository } from '../lib/db'
-import { UserRole } from '../entities/enums/UserRole'
+import { connectDB } from '../src/database/typeorm'
+import { getUserRepository, getAdminRepository } from '../src/database/repositories'
+import { UserRole } from '../src/database/entities/enums/UserRole'
 import { randomUUID } from 'crypto'
 import bcrypt from 'bcryptjs'
 
 async function createAdmin() {
   try {
-    const connection = await getConnection()
+    // Database bağlantısını kur
+    await connectDB()
+    console.log('✅ Database bağlantısı kuruldu')
     
     const userRepo = await getUserRepository()
     const adminRepo = await getAdminRepository()

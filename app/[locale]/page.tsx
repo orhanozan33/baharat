@@ -1,10 +1,29 @@
+// reflect-metadata MUST be imported FIRST
 import 'reflect-metadata'
+
+// ============================================
+// ENTITY IMPORTS - Force metadata loading
+// ============================================
+// Import entities BEFORE any other imports
+// This ensures metadata is loaded before DataSource initialization
+import { Product } from '@/src/database/entities/Product'
+import { Category } from '@/src/database/entities/Category'
+
+// Force metadata loading
+void Product
+void Category
+
+// Import database modules AFTER entities
+import '@/src/database/data-source'
+import '@/src/database/typeorm'
+import '@/src/database/repositories'
+
 import Link from 'next/link'
 import { ProductCard } from '@/components/ProductCard'
 import { getTranslations } from '@/lib/i18n'
 import { defaultLocale } from '@/i18n'
 import { isValidLocale } from '@/lib/i18n'
-import { getProductRepository, getCategoryRepository } from '@/lib/db'
+import { connectDB, getProductRepository, getCategoryRepository } from '@/lib/db'
 import { serializeProducts, serializeCategories } from '@/lib/serialize'
 
 export default async function HomePage({
@@ -16,18 +35,19 @@ export default async function HomePage({
   const locale = isValidLocale(localeParam) ? localeParam : defaultLocale
   const t = getTranslations(locale)
   
-  // Direkt database'den veri çek (API route kullanmadan)
+  // Initialize data arrays
   let products: any[] = []
   let categories: any[] = []
 
   try {
-    // Ensure database connection
-    const { connectDB } = await import('@/lib/db')
+    // Step 1: Connect to database
     await connectDB()
     
+    // Step 2: Get repositories
     const productRepo = await getProductRepository()
     const categoryRepo = await getCategoryRepository()
 
+    // Step 3: Fetch data
     const [productsData, categoriesData] = await Promise.all([
       productRepo.find({
         where: { isActive: true },
@@ -36,6 +56,7 @@ export default async function HomePage({
           isFeatured: 'DESC',
           createdAt: 'DESC',
         },
+        take: 20,
       }),
       categoryRepo.find({
         where: { isActive: true },
@@ -48,79 +69,38 @@ export default async function HomePage({
       }),
     ])
 
-    // TypeORM entity'lerini plain object'e serialize et
+    // Step 4: Serialize entities to plain objects
     const allProducts = serializeProducts(productsData)
     categories = serializeCategories(categoriesData)
 
-    // baseName'e göre grupla - aynı baseName'e sahip ürünler için sadece bir tane göster
-    const productMap = new Map<string, any>()
-    
-    for (const product of allProducts) {
-      const baseName = product.baseName || product.name
-      
-      // İndirimli mi kontrol et
-      const hasDiscount = product.comparePrice && product.comparePrice > product.price
-      
-      if (!productMap.has(baseName)) {
-        // İlk ürünü al
-        productMap.set(baseName, product)
-      } else {
-        const existing = productMap.get(baseName)
-        const existingHasDiscount = existing.comparePrice && existing.comparePrice > existing.price
-        
-        // Öncelik sırası:
-        // 1. İndirimli ürün (comparePrice > price)
-        // 2. Fiyatı 0 olmayan ve daha düşük fiyatlı ürün
-        // 3. Fiyatı 0 olmayan ürün
-        
-        if (hasDiscount && !existingHasDiscount) {
-          // Yeni ürün indirimli, mevcut değil - yeni ürünü seç
-          productMap.set(baseName, product)
-        } else if (!hasDiscount && existingHasDiscount) {
-          // Mevcut ürün indirimli, yeni değil - mevcut ürünü koru
-          // Hiçbir şey yapma
-        } else if (hasDiscount && existingHasDiscount) {
-          // Her ikisi de indirimli - daha yüksek indirim yüzdesine sahip olanı seç
-          const newDiscountPercent = ((product.comparePrice - product.price) / product.comparePrice) * 100
-          const existingDiscountPercent = ((existing.comparePrice - existing.price) / existing.comparePrice) * 100
-          if (newDiscountPercent > existingDiscountPercent) {
-            productMap.set(baseName, product)
-          }
-        } else {
-          // Hiçbiri indirimli değil - en düşük fiyatlı ve fiyatı 0 olmayan olanı seç
-          if (product.price > 0 && (existing.price === 0 || product.price < existing.price)) {
-            productMap.set(baseName, product)
-          } else if (existing.price === 0 && product.price > 0) {
-            productMap.set(baseName, product)
-          }
-        }
-      }
-    }
-    
-    // Gruplanmış ürünleri listeye çevir ve sırala
-    const groupedProducts = Array.from(productMap.values())
-    
-    // Sıralama: önce featured, sonra indirimli, sonra createdAt
-    groupedProducts.sort((a: any, b: any) => {
-      // 1. Featured öncelik
+    // Step 5: Sort products
+    const sortedProducts = [...allProducts].sort((a: any, b: any) => {
+      // Featured first
       if (a.isFeatured && !b.isFeatured) return -1
       if (!a.isFeatured && b.isFeatured) return 1
       
-      // 2. İndirimli öncelik
+      // Discounted second
       const aHasDiscount = a.comparePrice && a.comparePrice > a.price
       const bHasDiscount = b.comparePrice && b.comparePrice > b.price
       if (aHasDiscount && !bHasDiscount) return -1
       if (!aHasDiscount && bHasDiscount) return 1
       
-      // 3. En son oluşturulan
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      // Newest last
+      const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      return bDate - aDate
     })
     
-    // İlk 12 ürünü al (ana sayfa için)
-    products = groupedProducts.slice(0, 12)
+    // Step 6: Take first 12 products
+    products = sortedProducts.slice(0, 12)
+    
   } catch (error: any) {
-    console.error('HomePage data fetch error:', error)
-    // Hata durumunda boş array'ler kullan
+    console.error('❌ HomePage data fetch error:', error)
+    console.error('❌ Error message:', error?.message)
+    console.error('❌ Error stack:', error?.stack)
+    // On error, use empty arrays
+    products = []
+    categories = []
   }
 
   const featuredProducts = products.filter((p: any) => p.isFeatured) || []
@@ -128,7 +108,7 @@ export default async function HomePage({
 
   return (
     <div className="w-full">
-      {/* Banner Slider Section */}
+      {/* Banner Section */}
       <section className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-6 md:py-12">
         <div className="container mx-auto px-3 md:px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
@@ -157,7 +137,7 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* Öne Çıkan Ürünler */}
+      {/* Featured Products */}
       {featuredProducts.length > 0 && (
         <section className="bg-gray-50 py-4 md:py-8">
           <div className="container mx-auto px-3 md:px-4">
@@ -179,7 +159,7 @@ export default async function HomePage({
         </section>
       )}
 
-      {/* Yeni Ürünler */}
+      {/* Latest Products */}
       {latestProducts.length > 0 ? (
         <section className="bg-white py-4 md:py-8">
           <div className="container mx-auto px-3 md:px-4">
@@ -206,7 +186,6 @@ export default async function HomePage({
           </div>
         </section>
       )}
-
     </div>
   )
 }

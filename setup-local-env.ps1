@@ -118,3 +118,4 @@ Write-Host "🧪 Test için:" -ForegroundColor Cyan
 Write-Host "  http://localhost:3000/api/test" -ForegroundColor White
 Write-Host "  http://localhost:3000/api/health/database" -ForegroundColor White
 
+

@@ -20,3 +20,4 @@ if ($content -match $pattern) {
     Write-Host "✅ DATABASE_URL added to .env file!"
 }
 
+

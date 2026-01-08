@@ -1,18 +1,24 @@
+// reflect-metadata EN ÖNCE import edilmeli
 import 'reflect-metadata'
-import { NextRequest, NextResponse } from 'next/server'
-import { getConnection } from '@/lib/database'
-import { Settings } from '@/entities/Settings'
-import { Repository } from 'typeorm'
 
-// Entity'yi zorla yükle - metadata için
+// Entity'leri direkt import et - metadata yüklenmesi için KRİTİK
+import { Settings } from '@/src/database/entities/Settings'
 void Settings
+
+// Repositories ve typeorm'u import et
+import '@/src/database/repositories'
+import '@/src/database/typeorm'
+
+import { NextRequest, NextResponse } from 'next/server'
+import { connectDB, getSettingsRepository } from '@/lib/db'
 
 // Public API - Vergi oranlarını almak için (auth gerektirmez)
 export async function GET(request: NextRequest) {
   try {
-    // Repository'yi doğrudan connection'dan al
-    const connection = await getConnection()
-    const settingsRepo = connection.getRepository(Settings) as Repository<Settings>
+    // Database bağlantısını kur
+    await connectDB()
+    
+    const settingsRepo = await getSettingsRepository()
 
     // Varsayılan vergi oranları
     const defaultFederalTaxRate = '5' // %5 GST
